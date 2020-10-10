@@ -1,45 +1,25 @@
 language: cpp
 
-compiler:
-  - g++
-  - clang
+os: windows
 
-os: linux
+compiler: cl
 
-dist: bionic
-
-addons:
-  apt:
-    update: true
-    sources:
-      - sourceline: 'ppa:mhier/libboost-latest'
-    packages:
-      - libboost1.70-dev
-      - valgrind
-      - gdb
 env:
-  - CXXSTANDARD=11
-  - CXXSTANDARD=14
-  - CXXSTANDARD=17
-
-after_failure:
-  - COREFILE=$(find $TRAVIS_BUILD_DIR/cores -maxdepth 1 -name "core.*" -print | head -1)
-  - echo $COREFILE
-  - if [[ -f "$COREFILE" ]]; then gdb -c "$COREFILE" $EXEC -ex "thread apply all bt" -ex "set pagination 0" -batch; fi
+  global:
+    - BOOST_ROOT="C:\local\boost_1_67_0"
+    - BOOST_LIBRARYDIR="C:\local\boost_1_67_0\lib64-msvc-14.1"
 
 before_script:
-  - ulimit -c
-  - ulimit -a -S
-  - ulimit -a -H
-  - mkdir -p -m 0777 $TRAVIS_BUILD_DIR/cores
-  - sudo sysctl -w kernel.core_pattern=$TRAVIS_BUILD_DIR/cores/core.%e.%p
-  - cat /proc/sys/kernel/core_pattern
+  - "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\Common7\Tools\VsDevCmd.bat" -host_arch=amd64 -arch=amd64
+  - "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\Common7\Tools\VsDevCmd.bat" -test
   - git clone https://github.com/google/googletest.git
   - cd googletest && cmake -DCMAKE_INSTALL_PREFIX=install .
-  - make install
+  - cmake --build . --target install
   - cd ..
+  - choco install boost-msvc-14.1
+  #- dir "C:\Boost"
+  #- dir "C:\local\boost_1_67_0\libs\context"
 
 script:
-  - ulimit -c unlimited -S #enable core dumps
-  - cmake -DCMAKE-BUILD_TYPE=Debug -DQUANTUM_ENABLE_TESTS=ON -DQUANTUM_BOOST_USE_VALGRIND=ON -DCMAKE_INSTALL_PREFIX=tests -DGTEST_ROOT=googletest/install .
-  - make QuantumTests && ./tests/QuantumTests.Linux64
+  - cmake -DCMAKE-BUILD_TYPE=Debug -DQUANTUM_ENABLE_TESTS=ON -DCMAKE_INSTALL_PREFIX=tests -DGTEST_ROOT=googletest/install .
+  - cmake --build . --target all && ctest -C Debug
